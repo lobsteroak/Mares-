@@ -2,17 +2,17 @@
 
 /* ---------------------------------------------------------------------------
  * Marés — Porto / São Félix da Marinha (4410-463)
- * Referência de marés: Porto de Leixões. Dados: TideCheck API.
- * A estação é resolvida uma vez (procura "Leixões") e o ID fica guardado.
+ * Referência de marés: Espinho (Aveiro). Dados: TideCheck API.
+ * A estação é resolvida uma vez (procura STATION_QUERY) e o ID fica guardado.
  * ------------------------------------------------------------------------- */
 
 const LOCATION = {
   label: 'São Félix da Marinha · 4410-463',
-  reference: 'Porto de Leixões',
+  reference: 'Espinho (Aveiro)',
 };
 
 // Estação de referência de marés mais próxima do código postal 4410-463.
-const STATION_QUERY = 'Leixões';
+const STATION_QUERY = 'Espinho';
 
 const API_BASE = 'https://tidecheck.com/api';
 const TZ = 'Europe/Lisbon';
@@ -111,21 +111,42 @@ function cachedStation() {
   catch { return null; }
 }
 
-// Resolve (uma vez) a estação de Leixões e guarda o ID.
+const deaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function extractStationList(data) {
+  if (Array.isArray(data)) return data;
+  return data.stations || data.results || data.data ||
+         data.items || data.features ||
+         (data.data && (data.data.stations || data.data.results)) || [];
+}
+
+function normalizeStation(s) {
+  const p = s.properties || s; // suporta GeoJSON
+  return {
+    id: String(p.id ?? p.stationId ?? p.station_id ?? p.slug ?? ''),
+    name: p.name || p.stationName || p.station_name || STATION_QUERY,
+    country: p.country || p.countryName || p.country_name || p.countryCode || p.country_code || '',
+  };
+}
+
+// Resolve (uma vez) a estação e guarda o ID.
 async function resolveStation(key) {
   const c = cachedStation();
   if (c && c.id) return c;
 
   const data = await apiGet('/stations/search?q=' + encodeURIComponent(STATION_QUERY), key);
-  const list = Array.isArray(data)
-    ? data
-    : (data.stations || data.results || data.data || []);
-  if (!list.length) throw new Error('Não encontrei a estação de Leixões.');
+  const list = extractStationList(data).map(normalizeStation).filter((s) => s.id);
 
-  const isPT = (s) => /portugal/i.test(s.country || '') || /^pt$/i.test(s.countryCode || s.country_code || '');
-  const pick = list.find((s) => /leix/i.test(s.name || '')) ||
+  if (!list.length) {
+    const keys = Array.isArray(data) ? `array(${data.length})` : Object.keys(data || {}).join(',');
+    throw new Error(`Estação "${STATION_QUERY}" não encontrada. Resposta: ${keys}`);
+  }
+
+  const q = deaccent(STATION_QUERY);
+  const isPT = (s) => /portugal|^pt$/i.test(s.country);
+  const pick = list.find((s) => deaccent(s.name).includes(q)) ||
                list.find(isPT) || list[0];
-  const st = { id: String(pick.id ?? pick.stationId ?? pick.station_id), name: pick.name || 'Leixões' };
+  const st = { id: pick.id, name: pick.name };
   localStorage.setItem(LS_STATION, JSON.stringify(st));
   return st;
 }

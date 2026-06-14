@@ -1,7 +1,8 @@
 # Marés — Porto (4410-463)
 
 PWA minimalista que mostra **apenas** a maré para o código postal **4410-463**
-(São Félix da Marinha, V. N. Gaia), usando como referência o **Porto de Leixões**.
+(São Félix da Marinha, V. N. Gaia), usando como referência a estação de **Espinho** (Aveiro),
+a mais próxima do código postal na TideCheck.
 
 Sem mapas, sem pesquisa de localização, sem outras estações — uma só vista:
 
@@ -13,11 +14,11 @@ Sem mapas, sem pesquisa de localização, sem outras estações — uma só vist
 ## Dados
 
 Os dados vêm da [TideCheck API](https://tidecheck.com/developers) (oficial,
-inclui Leixões/Porto). É preciso uma **chave de API** (plano gratuito: 50 pedidos/dia).
+inclui a costa portuguesa). É preciso uma **chave de API** (plano gratuito: 50 pedidos/dia).
 A app pede a chave uma vez e guarda-a **apenas no teu telemóvel** (`localStorage`);
 não há nenhuma chave no código.
 
-A estação é resolvida automaticamente na 1ª utilização (procura `Leixões` via
+A estação é resolvida automaticamente na 1ª utilização (procura `Espinho` via
 `/api/stations/search`) e o ID fica guardado. A TideCheck devolve apenas as marés
 alta/baixa; a curva do dia é interpolada no telemóvel (cosseno entre extremos).
 
@@ -46,7 +47,7 @@ python3 -m http.server 8123
 No topo do `app.js`:
 
 ```js
-const STATION_QUERY = 'Leixões'; // estação de referência usada para o 4410-463
+const STATION_QUERY = 'Espinho'; // estação de referência usada para o 4410-463
 ```
 
 Se quiseres outra estação, muda o termo de procura (ou apaga `mares.station` no

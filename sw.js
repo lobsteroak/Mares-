@@ -2,7 +2,7 @@
  * Cache do "app shell" para funcionar offline.
  * Os dados de marés são geridos pela app (localStorage), não aqui. */
 
-const CACHE = 'mares-shell-v1';
+const CACHE = 'mares-shell-v2';
 const SHELL = [
   './',
   './index.html',

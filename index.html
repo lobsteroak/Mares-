@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Marés — Porto (4410-463)</title>
+  <meta name="description" content="Marés de Leixões / Porto para o código postal 4410-463." />
+  <meta name="theme-color" content="#0277bd" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Marés" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main id="app">
+    <header class="topbar">
+      <div>
+        <h1>Marés</h1>
+        <p class="place">São Félix da Marinha · 4410-463</p>
+      </div>
+      <button id="settingsBtn" class="icon-btn" aria-label="Definições" title="Definições">⚙</button>
+    </header>
+
+    <!-- Estado: sem chave de API -->
+    <section id="setupScreen" class="screen hidden">
+      <div class="card setup-card">
+        <h2>Configurar marés</h2>
+        <p>Esta app usa a <a href="https://www.worldtides.info/developer" target="_blank" rel="noopener">WorldTides API</a> para os dados oficiais. Cola a tua chave de API (fica guardada só neste telemóvel).</p>
+        <label for="keyInput">Chave de API WorldTides</label>
+        <input id="keyInput" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex.: 1a2b3c4d-…" />
+        <button id="saveKeyBtn" class="primary">Guardar e carregar marés</button>
+        <p class="hint">Sem chave? Cria uma conta gratuita em worldtides.info — tem um plano gratuito com créditos suficientes para uso pessoal.</p>
+      </div>
+    </section>
+
+    <!-- Estado principal -->
+    <section id="tideScreen" class="screen hidden">
+      <div id="statusBanner" class="banner hidden"></div>
+
+      <div class="card next-card" id="nextCard">
+        <p class="next-label" id="nextLabel">Próxima maré</p>
+        <p class="next-type" id="nextType">—</p>
+        <p class="next-time" id="nextTime">—</p>
+        <p class="next-countdown" id="nextCountdown">—</p>
+        <p class="next-height" id="nextHeight"></p>
+      </div>
+
+      <div class="card chart-card">
+        <h2>Hoje</h2>
+        <svg id="tideChart" viewBox="0 0 320 140" preserveAspectRatio="none" aria-label="Curva da maré de hoje"></svg>
+        <p class="now-marker-label" id="nowHeightLabel"></p>
+      </div>
+
+      <div class="card list-card">
+        <h2 id="listTitle">Marés</h2>
+        <ul id="tideList" class="tide-list"></ul>
+      </div>
+
+      <p class="updated" id="updatedAt"></p>
+    </section>
+
+    <section id="loadingScreen" class="screen">
+      <div class="spinner"></div>
+      <p>A carregar marés…</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Referência: Porto de Leixões · dados WorldTides</span>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

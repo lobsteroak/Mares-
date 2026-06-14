@@ -1,7 +1,7 @@
 {
   "name": "Marés Porto — São Félix da Marinha",
   "short_name": "Marés",
-  "description": "Marés (preia-mar e baixa-mar) para o código postal 4410-463, referência Porto de Leixões.",
+  "description": "Marés (preia-mar e baixa-mar) para o código postal 4410-463, referência Porto de Leixões. Dados TideCheck.",
   "lang": "pt-PT",
   "start_url": "./index.html",
   "scope": "./",

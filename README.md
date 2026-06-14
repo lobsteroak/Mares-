@@ -6,16 +6,20 @@ PWA minimalista que mostra **apenas** a maré para o código postal **4410-463**
 Sem mapas, sem pesquisa de localização, sem outras estações — uma só vista:
 
 - **Próxima maré** (preia-mar / baixa-mar) com hora e contagem decrescente
-- **Curva da maré de hoje** com o "agora" marcado
+- **Curva da maré de hoje** com o "agora" marcado (sintetizada a partir dos extremos)
 - **Lista das marés do dia** com alturas
 - Funciona **offline** (instalável no telemóvel) e mostra os últimos dados guardados
 
 ## Dados
 
-Os dados vêm da [WorldTides API](https://www.worldtides.info/developer) (oficial,
-inclui a costa portuguesa). É preciso uma **chave de API** (têm plano gratuito).
+Os dados vêm da [TideCheck API](https://tidecheck.com/developers) (oficial,
+inclui Leixões/Porto). É preciso uma **chave de API** (plano gratuito: 50 pedidos/dia).
 A app pede a chave uma vez e guarda-a **apenas no teu telemóvel** (`localStorage`);
 não há nenhuma chave no código.
+
+A estação é resolvida automaticamente na 1ª utilização (procura `Leixões` via
+`/api/stations/search`) e o ID fica guardado. A TideCheck devolve apenas as marés
+alta/baixa; a curva do dia é interpolada no telemóvel (cosseno entre extremos).
 
 > Nota: por ser uma PWA estática, a chave é usada diretamente no browser. Para uso
 > pessoal não há problema. Se um dia quiseres escondê-la, mete um pequeno proxy
@@ -26,7 +30,7 @@ não há nenhuma chave no código.
 1. Aloja a pasta num qualquer site estático com **HTTPS** (GitHub Pages, Netlify,
    Cloudflare Pages…). HTTPS é obrigatório para a PWA e o service worker.
 2. Abre o site no telemóvel → **"Adicionar ao ecrã principal"**.
-3. Na primeira abertura, cola a tua chave WorldTides e carrega em **Guardar**.
+3. Na primeira abertura, cola a tua chave TideCheck (`tc_live_…`) e carrega em **Guardar**.
 
 ### Testar localmente
 
@@ -39,13 +43,14 @@ python3 -m http.server 8123
 
 ## Configuração
 
-Tudo no topo do `app.js`:
+No topo do `app.js`:
 
 ```js
-const LOCATION = { lat: 41.045, lon: -8.660, ... }; // ponto costeiro de São Félix da Marinha
+const STATION_QUERY = 'Leixões'; // estação de referência usada para o 4410-463
 ```
 
-Se quiseres afinar para outro ponto, muda `lat`/`lon`.
+Se quiseres outra estação, muda o termo de procura (ou apaga `mares.station` no
+`localStorage` para forçar nova resolução).
 
 ## Ficheiros
 

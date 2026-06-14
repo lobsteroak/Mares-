@@ -27,11 +27,11 @@
     <section id="setupScreen" class="screen hidden">
       <div class="card setup-card">
         <h2>Configurar marés</h2>
-        <p>Esta app usa a <a href="https://www.worldtides.info/developer" target="_blank" rel="noopener">WorldTides API</a> para os dados oficiais. Cola a tua chave de API (fica guardada só neste telemóvel).</p>
-        <label for="keyInput">Chave de API WorldTides</label>
-        <input id="keyInput" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex.: 1a2b3c4d-…" />
+        <p>Esta app usa a <a href="https://tidecheck.com/developers" target="_blank" rel="noopener">TideCheck API</a> para os dados oficiais. Cola a tua chave de API (fica guardada só neste telemóvel).</p>
+        <label for="keyInput">Chave de API TideCheck</label>
+        <input id="keyInput" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex.: tc_live_…" />
         <button id="saveKeyBtn" class="primary">Guardar e carregar marés</button>
-        <p class="hint">Sem chave? Cria uma conta gratuita em worldtides.info — tem um plano gratuito com créditos suficientes para uso pessoal.</p>
+        <p class="hint">Sem chave? Cria uma conta gratuita em tidecheck.com/developers — o plano gratuito dá 50 pedidos por dia, mais que suficiente para uso pessoal.</p>
       </div>
     </section>
 
@@ -68,7 +68,7 @@
   </main>
 
   <footer class="foot">
-    <span>Referência: Porto de Leixões · dados WorldTides</span>
+    <span id="footRef">Referência: Porto de Leixões · dados TideCheck</span>
   </footer>
 
   <script src="./app.js"></script>

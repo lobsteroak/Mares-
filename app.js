@@ -2,22 +2,24 @@
 
 /* ---------------------------------------------------------------------------
  * Marés — Porto / São Félix da Marinha (4410-463)
- * Referência de marés: Porto de Leixões. Dados: WorldTides API (v3).
- * Localização fixa: ponto costeiro junto a São Félix da Marinha.
+ * Referência de marés: Porto de Leixões. Dados: TideCheck API.
+ * A estação é resolvida uma vez (procura "Leixões") e o ID fica guardado.
  * ------------------------------------------------------------------------- */
 
 const LOCATION = {
   label: 'São Félix da Marinha · 4410-463',
   reference: 'Porto de Leixões',
-  lat: 41.045,
-  lon: -8.660,
 };
 
-const API_BASE = 'https://www.worldtides.info/api/v3';
+// Estação de referência de marés mais próxima do código postal 4410-463.
+const STATION_QUERY = 'Leixões';
+
+const API_BASE = 'https://tidecheck.com/api';
 const TZ = 'Europe/Lisbon';
 
 const LS_KEY = 'mares.apiKey';
 const LS_CACHE = 'mares.cache';
+const LS_STATION = 'mares.station';
 const CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 h
 
 /* ---------- helpers de tempo (sempre na hora de Lisboa) ---------- */
@@ -87,22 +89,83 @@ function writeCache(data) {
   localStorage.setItem(LS_CACHE, JSON.stringify({ savedAt: Date.now(), data }));
 }
 
-async function fetchTides(key) {
-  const start = startOfTodayUnix();
-  const url = `${API_BASE}?heights&extremes&days=2&step=1800` +
-    `&start=${start}&lat=${LOCATION.lat}&lon=${LOCATION.lon}` +
-    `&key=${encodeURIComponent(key)}`;
-  const res = await fetch(url, { cache: 'no-store' });
+async function apiGet(path, key) {
+  const res = await fetch(API_BASE + path, {
+    headers: { 'X-API-Key': key, 'Accept': 'application/json' },
+    cache: 'no-store',
+  });
   let json;
   try { json = await res.json(); } catch { json = null; }
+  if (!res.ok) {
+    const msg = (json && (json.error || json.message)) || `Erro ${res.status} da API.`;
+    const e = new Error(msg);
+    e.status = res.status;
+    throw e;
+  }
   if (!json) throw new Error('Resposta inválida do servidor.');
-  if (json.status && json.status !== 200) {
-    throw new Error(json.error || `Erro ${json.status} da API.`);
-  }
-  if (!Array.isArray(json.extremes)) {
-    throw new Error(json.error || 'Sem dados de marés para esta localização.');
-  }
   return json;
+}
+
+function cachedStation() {
+  try { return JSON.parse(localStorage.getItem(LS_STATION) || 'null'); }
+  catch { return null; }
+}
+
+// Resolve (uma vez) a estação de Leixões e guarda o ID.
+async function resolveStation(key) {
+  const c = cachedStation();
+  if (c && c.id) return c;
+
+  const data = await apiGet('/stations/search?q=' + encodeURIComponent(STATION_QUERY), key);
+  const list = Array.isArray(data)
+    ? data
+    : (data.stations || data.results || data.data || []);
+  if (!list.length) throw new Error('Não encontrei a estação de Leixões.');
+
+  const isPT = (s) => /portugal/i.test(s.country || '') || /^pt$/i.test(s.countryCode || s.country_code || '');
+  const pick = list.find((s) => /leix/i.test(s.name || '')) ||
+               list.find(isPT) || list[0];
+  const st = { id: String(pick.id ?? pick.stationId ?? pick.station_id), name: pick.name || 'Leixões' };
+  localStorage.setItem(LS_STATION, JSON.stringify(st));
+  return st;
+}
+
+async function fetchTideData(key) {
+  const st = await resolveStation(key);
+  const data = await apiGet(`/station/${encodeURIComponent(st.id)}/tides`, key);
+  const raw = data.extremes || (data.tides && data.tides.extremes) || [];
+  const extremes = raw.map((e) => ({
+    dt: Math.floor(Date.parse(e.time || e.t || e.date) / 1000),
+    height: typeof e.height === 'number' ? e.height : parseFloat(e.height),
+    type: e.type,
+    localDate: e.localDate,
+  })).filter((e) => Number.isFinite(e.dt) && Number.isFinite(e.height))
+    .sort((a, b) => a.dt - b.dt);
+
+  if (extremes.length < 2) throw new Error('Sem dados de marés para a estação.');
+  return { station: st, extremes };
+}
+
+// A TideCheck só dá os extremos (preia/baixa-mar). Sintetizamos a curva do dia
+// por interpolação cosseno entre extremos consecutivos (método-padrão).
+function synthesizeCurve(extremes) {
+  if (!extremes || extremes.length < 2) return [];
+  const start = startOfTodayUnix();
+  const end = start + 24 * 3600;
+  const out = [];
+  for (let t = start; t <= end; t += 1800) {
+    let a = null, b = null;
+    for (let i = 0; i < extremes.length - 1; i++) {
+      if (extremes[i].dt <= t && t <= extremes[i + 1].dt) {
+        a = extremes[i]; b = extremes[i + 1]; break;
+      }
+    }
+    if (!a) continue; // fora do intervalo coberto pelos extremos
+    const f = (t - a.dt) / (b.dt - a.dt);
+    const h = a.height + (b.height - a.height) * (1 - Math.cos(Math.PI * f)) / 2;
+    out.push({ dt: t, height: +h.toFixed(3) });
+  }
+  return out;
 }
 
 /* ---------- render ---------- */
@@ -227,7 +290,11 @@ function banner(kind, msg) {
 function renderAll(data, { stale } = {}) {
   renderNext(data.extremes);
   renderList(data.extremes);
-  renderChart(data.heights, data.extremes);
+  renderChart(synthesizeCurve(data.extremes), data.extremes);
+  const footRef = el('footRef');
+  if (footRef && data.station && data.station.name) {
+    footRef.textContent = `Estação: ${data.station.name} · dados TideCheck`;
+  }
   const cache = readCache();
   if (cache) {
     const when = fmtTime(Math.floor(cache.savedAt / 1000));
@@ -261,15 +328,18 @@ async function load() {
   if (refreshing) return;
   refreshing = true;
   try {
-    const data = await fetchTides(key);
+    const data = await fetchTideData(key);
     writeCache(data);
     banner(null);
     renderAll(data, { stale: false });
   } catch (err) {
+    const authProblem = err.status === 401 || err.status === 403 ||
+      /invalid|unauthor|api.?key|forbidden/i.test(err.message);
     if (cache) {
       banner('warn', `Não atualizou: ${err.message}`);
       renderAll(cache.data, { stale: true });
-    } else if (/invalid|key|401|400/i.test(err.message)) {
+    } else if (authProblem) {
+      localStorage.removeItem(LS_STATION);
       showScreen('setup');
       el('keyInput').value = key;
       alertSetup(`Chave rejeitada: ${err.message}`);
@@ -300,6 +370,7 @@ el('saveKeyBtn').addEventListener('click', () => {
   if (!k) { alertSetup('Cola a tua chave de API primeiro.'); return; }
   setKey(k);
   localStorage.removeItem(LS_CACHE);
+  localStorage.removeItem(LS_STATION);
   showScreen('loading');
   load();
 });
